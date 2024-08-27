@@ -16,6 +16,13 @@ const Color = enum {
     None,
 };
 
+pub fn as_square(square: []const u8) u64 {
+    const file = square[0] - 'a';
+    const rank = square[1] - '1';
+
+    return (rank * 8) + file;
+}
+
 const Piece = struct {
     type: PieceType,
     color: Color,
@@ -49,6 +56,18 @@ pub const Board = struct {
     kings: u64,
     white: u64,
     black: u64,
+
+    turn: Color,
+    castling: struct {
+        white_kingside: bool,
+        white_queenside: bool,
+        black_kingside: bool,
+        black_queenside: bool,
+    },
+
+    en_passant: ?usize,
+    halfmove: usize,
+    fullmove: usize,
 
     pub fn get_pos_bitboard(pos: usize) u64 {
         return @as(u64, 1) << @intCast(pos);
@@ -103,6 +122,18 @@ pub const Board = struct {
             .kings = 0,
             .white = 0,
             .black = 0,
+
+            .turn = Color.None,
+            .castling = .{
+                .white_kingside = false,
+                .white_queenside = false,
+                .black_kingside = false,
+                .black_queenside = false,
+            },
+
+            .en_passant = null,
+            .halfmove = 0,
+            .fullmove = 0,
         };
 
         var pos: usize = 0;
@@ -169,6 +200,36 @@ pub const Board = struct {
             }
             square += 1;
         }
+
+        pos += 1;
+        board.turn = if (fen[pos + 1] == 'w') Color.White else Color.Black;
+
+        pos += 2;
+        while (fen[pos] != ' ') : ({
+            pos += 1;
+        }) {
+            switch (fen[pos]) {
+                'K' => board.castling.white_kingside = true,
+                'Q' => board.castling.white_queenside = true,
+                'k' => board.castling.black_kingside = true,
+                'q' => board.castling.black_queenside = true,
+                else => continue,
+            }
+        }
+
+        pos += 1;
+        board.en_passant = if (fen[pos] == '-') null else as_square(fen[pos .. pos + 2]);
+
+        pos += 3;
+        while (fen[pos] != ' ') : (pos += 1) {
+            board.halfmove = board.halfmove * 10 + fen[pos] - '0';
+        }
+
+        pos += 1;
+        while (fen[pos] != 0) : (pos += 1) {
+            board.fullmove = board.fullmove * 10 + fen[pos] - '0';
+        }
+
         return board;
     }
 
