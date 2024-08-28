@@ -1,6 +1,7 @@
 const std = @import("std");
 
 const Board = @import("board.zig").Board;
+const Move = @import("board.zig").Move;
 
 const UciError = error{
     InvalidCommand,
@@ -27,13 +28,18 @@ pub fn run() void {
         if (mainCommand == null) {
             continue;
         } else if (std.mem.eql(u8, mainCommand.?, "uci")) {
-            // DO NOTHING
+            std.debug.print("id name ziggychess\n", .{});
+            std.debug.print("id author Hugo Lindstrom\n", .{});
+
+            std.debug.print("uciok\n", .{});
         } else if (std.mem.eql(u8, mainCommand.?, "debug")) {
             // TODO: Implement debug command
+
         } else if (std.mem.eql(u8, mainCommand.?, "isready")) {
             std.debug.print("readyok\n", .{});
         } else if (std.mem.eql(u8, mainCommand.?, "setoption")) {
             // TODO: Implement setoption command
+
         } else if (std.mem.eql(u8, mainCommand.?, "position")) {
             board = set_pos(&command) catch |err| {
                 std.debug.print("Error: {}\n", .{err});
@@ -41,6 +47,12 @@ pub fn run() void {
             };
         } else if (std.mem.eql(u8, mainCommand.?, "print")) {
             board.print();
+        } else if (std.mem.eql(u8, mainCommand.?, "move")) {
+            board.move_piece(Move.from_string(command.next().?, &board)) catch |err| {
+                std.debug.print("Error: {}\n", .{err});
+            };
+        } else if (std.mem.eql(u8, mainCommand.?, "quit")) {
+            return;
         } else {
             std.debug.print("Error: {} {s}\n", .{ UciError.InvalidCommand, mainCommand.? });
         }
@@ -77,7 +89,6 @@ fn set_pos(command: *std.mem.SplitIterator(u8, std.mem.DelimiterType.sequence)) 
             len += 1;
         }
         fenbuf[len - 1] = 0;
-        std.debug.print("FEN: {s}\n", .{fenbuf});
         result = Board.load_fen(&fenbuf);
         //TODO: Implement move list
     } else {
